@@ -4,7 +4,7 @@ import { ServerError } from '../errors/server-error'
 import { EmailValidator } from '../protocols/email-validator'
 import { SignUpController } from './signup'
 
-const EmailValidatorMock = (): any => {
+const makeEmailValidator = (): any => {
   class EmailValidatorStub implements EmailValidator {
     isValid (email: string): boolean {
       return true
@@ -13,7 +13,7 @@ const EmailValidatorMock = (): any => {
   return new EmailValidatorStub()
 }
 const makeSut = (): any => {
-  const emailValidatorStub = EmailValidatorMock()
+  const emailValidatorStub = makeEmailValidator()
   const sut = new SignUpController(emailValidatorStub)
   return { sut, emailValidatorStub }
 }
@@ -134,5 +134,23 @@ describe('Signup Controller', () => {
     const httpResponse = sut.handle(httpRequest)
     expect(httpResponse.statusCode).toBe(500)
     expect(httpResponse.body).toEqual(new ServerError())
+  })
+  test('should call AddAccount with correct values', () => {
+    const { sut, addAccountStub } = makeSut()
+    const addSpy = jest
+      .spyOn(addAccountStub, 'add')
+      .mockImplementationOnce(() => {
+        throw new Error()
+      })
+    const httpRequest = {
+      body: {
+        name: 'any-name',
+        email: 'any-email@email.com',
+        password: 'any-password',
+        confirmPassword: 'any-password'
+      }
+    }
+    sut.handle(httpRequest)
+    expect(addSpy).toHaveBeenCalledWith(httpRequest)
   })
 })
