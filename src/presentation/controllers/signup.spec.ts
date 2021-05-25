@@ -1,3 +1,5 @@
+import { AccountModel } from '../../domain/models/account'
+import { AddAccount, AddAccountModel } from '../../domain/usecases/add-account'
 import { InvalidParamError } from '../errors/invalid-param-errors'
 import { MissingParamError } from '../errors/missing-param-errors'
 import { ServerError } from '../errors/server-error'
@@ -12,10 +14,25 @@ const makeEmailValidator = (): any => {
   }
   return new EmailValidatorStub()
 }
+const makeAddAccount = (): AddAccount => {
+  class AddAccountStub implements AddAccount {
+    add (account: AddAccountModel): AccountModel {
+      const fakeAccount = {
+        id: 'valid-id',
+        name: 'valid-name',
+        email: 'valid-email@email.com',
+        password: 'valid-password'
+      }
+      return fakeAccount
+    }
+  }
+  return new AddAccountStub()
+}
 const makeSut = (): any => {
   const emailValidatorStub = makeEmailValidator()
-  const sut = new SignUpController(emailValidatorStub)
-  return { sut, emailValidatorStub }
+  const addAccountStub = makeAddAccount()
+  const sut = new SignUpController(emailValidatorStub, addAccountStub)
+  return { sut, emailValidatorStub, addAccountStub }
 }
 
 describe('Signup Controller', () => {
@@ -151,6 +168,46 @@ describe('Signup Controller', () => {
       }
     }
     sut.handle(httpRequest)
-    expect(addSpy).toHaveBeenCalledWith(httpRequest)
+    expect(addSpy).toHaveBeenCalledWith({
+      name: 'any-name',
+      email: 'any-email@email.com',
+      password: 'any-password'
+    })
+  })
+  test('should return 500 if AddAccount throw', () => {
+    const { sut, addAccountStub } = makeSut()
+    jest.spyOn(addAccountStub, 'add').mockImplementationOnce(() => {
+      throw new Error()
+    })
+    const httpRequest = {
+      body: {
+        name: 'any-name',
+        email: 'any-email@email.com',
+        password: 'any-password',
+        confirmPassword: 'any-password'
+      }
+    }
+    const httpResponse = sut.handle(httpRequest)
+    expect(httpResponse.statusCode).toBe(500)
+    expect(httpResponse.body).toEqual(new ServerError())
+  })
+  test('should return 200 if valid data is provided ', () => {
+    const { sut } = makeSut()
+    const httpRequest = {
+      body: {
+        name: 'valid-name',
+        email: 'valid-email@email.com',
+        password: 'valid-password',
+        confirmPassword: 'valid-password'
+      }
+    }
+    const httpResponse = sut.handle(httpRequest)
+    expect(httpResponse.statusCode).toBe(200)
+    expect(httpResponse.body).toEqual({
+      id: 'valid-id',
+      name: 'valid-name',
+      email: 'valid-email@email.com',
+      password: 'valid-password'
+    })
   })
 })
