@@ -10,8 +10,10 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@shelf/jest-mongodb": "^1.2.4",
     "@types/bcrypt": "^5.0.0",
     "@types/jest": "^24.9.1",
+    "@types/mongodb": "^3.6.16",
     "@types/node": "^13.13.52",
     "@typescript-eslint/eslint-plugin": "^2.34.0",
     "eslint": "^6.8.0",
